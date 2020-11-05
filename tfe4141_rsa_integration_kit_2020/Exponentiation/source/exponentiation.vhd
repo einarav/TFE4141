@@ -1,8 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
--- Adding numeric_std.all to allow for * & mod operations
-use IEEE.numeric_std.all;
-
+use ieee.numeric_std.all;
 
 entity exponentiation is
 	generic (
@@ -16,9 +14,6 @@ entity exponentiation is
 		--input data
 		message 	: in STD_LOGIC_VECTOR ( C_block_size-1 downto 0 );
 		key 		: in STD_LOGIC_VECTOR ( C_block_size-1 downto 0 );
-		
-		-- Vector equal to decimal value 1
-		onevector   : in STD_LOGIC_VECTOR ( C_block_size-1 downto 0 ) := (0 => '1', others => '0');
 
 		--ouput controll
 		ready_out	: in STD_LOGIC;
@@ -38,42 +33,136 @@ end exponentiation;
 
 
 architecture expBehave of exponentiation is
-
--- Integer versions of the vectors
-signal int_result : integer;
-signal int_message : integer;
-signal int_key : integer;
--- Will the integer size work????
-
-begin
-    process
+    type state is (IDLE, FINISHED, MULTIPLY, SQUARING, MODULO);
+    signal current_state : state := IDLE;
+    signal next_state : state := IDLE;
     
-    begin -- Checking key binary value
-        if (key(C_block_size-1) = '1') then
-            result <= message;
-        else   
-            result <= onevector;        
-        end if;
+    signal counter, multiply_counter, squaring_counter : integer range 0 to 256;
+    
+    signal result_tmp : std_logic_vector (C_block_size-1 downto 0) := result;
+    signal message_tmp : std_logic_vector (C_block_size-1 downto 0) := message;
+    signal key_e_d_tmp : std_logic_vector (C_block_size-1 downto 0) := key;
+    signal modulus_n : std_logic_vector (C_block_size-1 downto 0) := modulus;
+    
+    signal working_start, multiply_start, modulus_start : std_logic := '0';
+    signal multiply_R : std_logic_vector (C_block_size - 1 downto 0);
+    
+begin
+    
+    process (next_state, current_state,
+    counter, multiply_counter, squaring_counter, result_tmp, message_tmp, key_e_d_tmp, modulus_n,
+    working_start, multiply_start, modulus_start, multiply_R)
+    begin
+        case current_state is
         
-        -- Converting values
-        int_result <= to_integer(unsigned(result));
-        int_message <= to_integer(unsigned(message));
-        int_key <= to_integer(unsigned(key));
-         
-        for element in C_block_size-2 downto 0 loop
-            -- Can do int_result^2 using multiplication when Montgomery is implemented
-            int_result <= (int_result**2) mod int_key;
+            when IDLE => -- Check if we are ready to start
+            -- Telling rsa_msgin that ready for msgin_data
+            ready_in <= '0';
+            valid_out <= '0';
             
-            if (key(element) = '1') then
-                -- Need to add different method for multiplication
-                int_result <= (int_result*int_message) mod int_key;
-            end if;
-        end loop;
-         
-        result <= std_logic_vector(to_unsigned(int_result, C_block_size-1));
-	
-	ready_in <= ready_out;
-	valid_out <= valid_in;
-	wait for 1 us; -- Wait statement? Is it needed??
+            counter <= C_block_size - 2;
+            multiply_counter <= 0;
+            squaring_counter <= 0;
+            working_start <= '0';
+            multiply_R <= (others => '0');
+            next_state <= SQUARING;
+            
+            
+        
+            when SQUARING =>
+                if (key_e_d_tmp(C_block_size - 1) = '1') and (working_start = '0') then
+                    result_tmp <= message_tmp;
+                    working_start <= '1';
+                elsif (key_e_d_tmp(C_block_size - 1) = '0') then
+                    -- ERROR with key_e_d value
+                    -- result_tmp = 0;
+                    -- Send back to IDLE?
+                end if;
+                
+                if (counter > 0) then
+                    -- Performing C = C^2 = C*C
+                    if (squaring_counter < C_block_size - 1) then
+                        multiply_R <= multiply_R sll 1;
+                        
+                        if (result_tmp(squaring_counter) = '1') then
+                            multiply_R <= std_logic_vector(unsigned(multiply_R) + unsigned(result_tmp));
+                        end if;
+                        
+                        squaring_counter <= squaring_counter + 1;
+                    end if;
+                    
+                    if (squaring_counter = C_block_size - 1) then
+                        result_tmp <= multiply_R;
+                        multiply_R <= (others => '0');
+                        squaring_counter <= 0;
+                        
+                        if (key_e_d_tmp(counter) = '1') then
+                            next_state <= MULTIPLY;
+                        else
+                            next_state <= MODULO;
+                        end if;
+                    end if;
+                end if;
+                
+                
+            
+            when MULTIPLY =>
+                if (multiply_counter < C_block_size - 1) then
+                    multiply_R <= multiply_R sll 1;
+                    
+                    if (result_tmp(multiply_counter) = '1') then
+                        multiply_R <= std_logic_vector(unsigned(multiply_R) + unsigned(message_tmp));
+                    end if;
+                    
+                    multiply_counter <= multiply_counter + 1;
+                end if;
+                
+                if (multiply_counter = C_block_size - 1) then
+                    result_tmp <= multiply_R;
+                    multiply_R <= (others => '0');
+                    multiply_counter <= 0;
+                    next_state <= MODULO;              
+                end if;
+                
+                
+            
+            when MODULO =>
+                if (result_tmp > modulus_n) then
+                    result_tmp <= std_logic_vector(unsigned(result_tmp) - unsigned(modulus_n));
+                    modulus_start <= '1';
+                    
+                    if (result_tmp < modulus_n) then
+                        modulus_start <= '0';
+                    end if;
+                end if;
+                
+                if (counter > 0) and (modulus_start = '0') then
+                    counter <= counter - 1;
+                    next_state <= SQUARING;
+                elsif (counter < 1) and (modulus_start = '0') then
+                    next_state <= FINISHED;
+                end if;
+                
+                
+            when FINISHED => -- Output the signal and confirm that is finished
+            result <= result_tmp;
+            ready_in <= '1';
+            valid_out <= '1';
+            next_state <= IDLE;
+            
+            
+        end case;
     end process;
+    
+    -- Control process -- 
+    process (clk, reset_n)
+    begin
+        if (reset_n = '0') then
+            current_state <= IDLE;
+            
+        elsif rising_edge(clk) then
+            current_state <= next_state;
+        end if;
+    end process;
+	
 end expBehave;
