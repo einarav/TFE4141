@@ -71,14 +71,17 @@ begin
             
         
             when SQUARING =>
-                if (key_e_d_tmp(C_block_size - 1) = '1') and (working_start = '0') then
+            -- Removed the ERROR part. Might cause program not to
+            -- run with arrays containing U (emptiness)
+                if (working_start = '0') then
                     result_tmp <= message_tmp;
                     working_start <= '1';
-                elsif (key_e_d_tmp(C_block_size - 1) = '0') then
+                end if;
+                --elsif (key_e_d_tmp(C_block_size - 1) = '0') then
                     -- ERROR with key_e_d value
                     -- result_tmp = 0;
                     -- Send back to IDLE?
-                end if;
+                --end if;
                 
                 if (counter > 0) then
                     -- Performing C = C^2 = C*C

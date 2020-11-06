@@ -36,9 +36,10 @@ architecture expBehave of exponentiation_tb is
 	signal result 		: STD_LOGIC_VECTOR(C_block_size-1 downto 0);
 	
 	--Internal
-	signal modulus 		: STD_LOGIC_VECTOR(C_block_size-1 downto 0);
-	signal restart 		: STD_LOGIC;
-	signal reset_n 		: STD_LOGIC;
+	signal modulus 		  : STD_LOGIC_VECTOR(C_block_size-1 downto 0);
+	signal restart 		  : STD_LOGIC;
+	signal reset_n 		  : STD_LOGIC;
+    signal working_start, multiply_start, modulus_start : std_logic;
 
 begin
  
@@ -63,10 +64,14 @@ begin
     --Testbench sequence
     process is
     begin
-        wait for 10 ns;
+        wait for 20 ns;
         reset_n <= '1';
         wait for 20 ns;
         valid_in <= '1';
-        ready_in <= '1';
+        wait for 40 ns;
+        modulus(7 downto 0) <= "00110111";
+        key(3 downto 0) <= "0111";
+        message(7 downto 0) <= "00011011";
+        
     end process;
 end expBehave;
