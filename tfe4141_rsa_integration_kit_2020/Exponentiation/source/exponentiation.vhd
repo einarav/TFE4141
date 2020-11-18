@@ -53,6 +53,7 @@ begin
     counter, multiply_counter, squaring_counter, result_tmp, message_tmp, key_e_d_tmp, modulus_n,
     working_start, multiply_start, modulus_start, multiply_R, clk)
     begin
+        if rising_edge(clk) then
         case current_state is
         
             when IDLE => -- Check if we are ready to start
@@ -155,15 +156,16 @@ begin
             
             
         end case;
+        end if;
     end process;
     
     -- Control process -- 
     process (clk, reset_n)
     begin
-        if (reset_n = '0') then
+        if (reset_n = '1') then
             current_state <= IDLE;
             
-        elsif rising_edge(clk) then
+        else
             current_state <= next_state;
         end if;
     end process;
