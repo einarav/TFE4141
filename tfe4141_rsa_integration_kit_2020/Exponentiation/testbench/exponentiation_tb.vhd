@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use std.env.finish;
 
 
 entity exponentiation_tb is
@@ -64,14 +65,16 @@ begin
     --Testbench sequence
     process is
     begin
-        wait for 20 ns;
+        reset_n <= '0';
+        wait for 10 ns;
         reset_n <= '1';
-        wait for 20 ns;
         valid_in <= '1';
-        wait for 40 ns;
-        modulus(7 downto 0) <= "00110111";
-        key(3 downto 0) <= "0111";
-        message(7 downto 0) <= "00011011";
-        
+        working_start <= '0';
+        --wait for 40 ns;
+        --modulus(7 downto 0) <= "00110111";
+        --key(3 downto 0) <= "0111";
+        --message(7 downto 0) <= "00011011";
+        wait for 200 ns;
+        finish;
     end process;
 end expBehave;
