@@ -38,7 +38,7 @@ architecture expBehave of exponentiation_tb is
 	
 	--Internal
 	signal modulus 		  : STD_LOGIC_VECTOR(C_block_size-1 downto 0);
-	signal restart 		  : STD_LOGIC;
+	--signal restart 		  : STD_LOGIC;
 	signal reset_n 		  : STD_LOGIC;
     
 
@@ -76,6 +76,7 @@ begin
             others => '0');
             
         key(255 downto 0) <= (
+            --3 => '1',
             2 => '1',
             1 => '1',
             0 => '1',

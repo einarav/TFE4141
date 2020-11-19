@@ -124,13 +124,16 @@ begin
                         multiply_R <= (others => '0');
                         squaring_counter <= 0;
                         
-                        if (key_e_d_tmp(counter) = '1') then
-                            next_state <= MULTIPLY;
-                        else
-                            next_state <= MODULO;
-                        end if;
                     end if;
                 end if;
+                if (key_e_d_tmp(counter) = '1') then
+                    next_state <= MULTIPLY;
+                    --squaring_counter <= 0;
+                else
+                    next_state <= MODULO;
+                    --squaring_counter <= 0;
+                end if;
+                
                 
                 
             
@@ -170,15 +173,15 @@ begin
                         modulus_start <= '0';
                     end if;
                 end if;
-                
-                if (counter > 0) and (modulus_start = '0') then
-                    counter <= counter - 1;
-                    next_state <= SQUARING;
-                elsif (counter < 1) and (modulus_start = '0') then
-                    next_state <= FINISHED;
-                    working_start <= '0';
+                if(modulus_start = '0') then
+                    if (counter > 0) then --and (modulus_start = '0') then
+                        counter <= counter - 1;
+                        next_state <= SQUARING;
+                    elsif (counter < 1) then --and (modulus_start = '0') then
+                        next_state <= FINISHED;
+                        working_start <= '0';
+                    end if;
                 end if;
-                
                 
             when FINISHED => -- Output the signal and confirm that is finished
             result <= result_tmp;
