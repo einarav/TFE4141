@@ -40,7 +40,7 @@ architecture expBehave of exponentiation_tb is
 	signal modulus 		  : STD_LOGIC_VECTOR(C_block_size-1 downto 0);
 	signal restart 		  : STD_LOGIC;
 	signal reset_n 		  : STD_LOGIC;
-    signal working_start, multiply_start, modulus_start : std_logic;
+    
 
 begin
  
@@ -65,18 +65,36 @@ begin
     --Testbench sequence
     process is
     begin
-        reset_n <= '0';
-        wait for 50 ns;
-        reset_n <= '1';
         valid_in <= '1';
-        --working_start <= '0';
-        wait for 40 ns;
+        ready_out <= '0';
+        
+        -- Giving random values
+        message(255 downto 0) <= (
+            0 => '1',
+            1 => '1',
+            4 => '1',
+            others => '0');
+            
+        key(255 downto 0) <= (
+            2 => '1',
+            1 => '1',
+            0 => '1',
+            others => '0');
+            
+        modulus(255 downto 0) <= (
+            0 => '1',
+            1 => '1',
+            2 => '1',
+            4 => '1',
+            5 => '1',
+            others => '0');
+        
         reset_n <= '0';
-        wait for 60 ns;
-        modulus(7 downto 0) <= "00110111";
-        key(3 downto 0) <= "0111";
-        message(7 downto 0) <= "00011011";
-        wait for 200 ns;
-        finish;
+        wait for 10ns;
+        reset_n <= '1';
+        wait for 10ns;
+        
+  
+        wait;
     end process;
 end expBehave;
